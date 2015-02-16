@@ -180,13 +180,13 @@ define("htmlbars-compiler/fragment-javascript-compiler",
     };
   });
 define("htmlbars-compiler/fragment-opcode-compiler",
-  ["./template-visitor","./utils","../htmlbars-util","../htmlbars-util/array-utils","exports"],
-  function(__dependency1__, __dependency2__, __dependency3__, __dependency4__, __exports__) {
+  ["./template-visitor","./utils","../htmlbars-util/array-utils","exports"],
+  function(__dependency1__, __dependency2__, __dependency3__, __exports__) {
     "use strict";
     var TemplateVisitor = __dependency1__["default"];
     var processOpcodes = __dependency2__.processOpcodes;
-    var getAttrNamespace = __dependency3__.getAttrNamespace;
-    var forEach = __dependency4__.forEach;
+    var getNamespace = __dependency2__.getNamespace;
+    var forEach = __dependency3__.forEach;
 
     function FragmentOpcodeCompiler() {
       this.opcodes = [];
@@ -246,7 +246,7 @@ define("htmlbars-compiler/fragment-opcode-compiler",
     FragmentOpcodeCompiler.prototype.attribute = function(attr) {
       if (attr.value.type === 'TextNode') {
 
-        var namespace = getAttrNamespace(attr.name);
+        var namespace = getNamespace(attr.name) || null;
 
         this.opcode('setAttribute', [attr.name, attr.value.chars, namespace]);
       }
@@ -518,14 +518,14 @@ define("htmlbars-compiler/hydration-javascript-compiler",
     };
   });
 define("htmlbars-compiler/hydration-opcode-compiler",
-  ["./template-visitor","./utils","../htmlbars-util","../htmlbars-util/array-utils","../htmlbars-syntax/utils","exports"],
-  function(__dependency1__, __dependency2__, __dependency3__, __dependency4__, __dependency5__, __exports__) {
+  ["./template-visitor","./utils","../htmlbars-util/array-utils","../htmlbars-syntax/utils","exports"],
+  function(__dependency1__, __dependency2__, __dependency3__, __dependency4__, __exports__) {
     "use strict";
     var TemplateVisitor = __dependency1__["default"];
     var processOpcodes = __dependency2__.processOpcodes;
-    var getAttrNamespace = __dependency3__.getAttrNamespace;
-    var forEach = __dependency4__.forEach;
-    var isHelper = __dependency5__.isHelper;
+    var getNamespace = __dependency2__.getNamespace;
+    var forEach = __dependency3__.forEach;
+    var isHelper = __dependency4__.isHelper;
 
     function unwrapMustache(mustache) {
       if (isHelper(mustache.sexpr)) {
@@ -697,7 +697,7 @@ define("htmlbars-compiler/hydration-opcode-compiler",
     HydrationOpcodeCompiler.prototype.attribute = function(attr) {
       var value = attr.value;
       var escaped = true;
-      var namespace = getAttrNamespace(attr.name);
+      var namespace = getNamespace(attr.name) || null;
 
       // TODO: Introduce context specific AST nodes to avoid switching here.
       if (value.type === 'TextNode') {
@@ -1254,7 +1254,23 @@ define("htmlbars-compiler/utils",
       }
     }
 
-    __exports__.processOpcodes = processOpcodes;
+    __exports__.processOpcodes = processOpcodes;// ref http://dev.w3.org/html5/spec-LC/namespaces.html
+    var defaultNamespaces = {
+      html: 'http://www.w3.org/1999/xhtml',
+      mathml: 'http://www.w3.org/1998/Math/MathML',
+      svg: 'http://www.w3.org/2000/svg',
+      xlink: 'http://www.w3.org/1999/xlink',
+      xml: 'http://www.w3.org/XML/1998/namespace'
+    };
+
+    function getNamespace(attrName) {
+      var parts = attrName.split(':');
+      if (parts.length > 1) {
+        return defaultNamespaces[parts[0]];
+      }
+    }
+
+    __exports__.getNamespace = getNamespace;
   });
 define("htmlbars-runtime",
   ["htmlbars-runtime/hooks","htmlbars-runtime/helpers","exports"],
@@ -2861,7 +2877,7 @@ define("htmlbars-syntax/node-handlers",
         // Ensure that that the element stack is balanced properly.
         var poppedNode = this.elementStack.pop();
         if (poppedNode !== node) {
-          throw new Error("Unclosed element `" + poppedNode.tag + "` (on line " + poppedNode.loc.start.line + ").");
+          throw new Error("Unclosed element: " + poppedNode.tag);
         }
 
         return node;
@@ -3011,20 +3027,6 @@ define("htmlbars-syntax/parser",
     // But this version of the transpiler does not support it properly
     var syntax = __dependency7__;
 
-    var splitLines;
-    // IE8 throws away blank pieces when splitting strings with a regex
-    // So we split using a string instead as appropriate
-    if ("foo\n\nbar".split(/\n/).length === 2) {
-      splitLines = function(str) {
-         var clean = str.replace(/\r\n?/g, '\n');
-         return clean.split('\n');
-      };
-    } else {
-      splitLines = function(str) {
-        return str.split(/(?:\r\n?|\n)/g);
-      };
-    }
-
     function preprocess(html, options) {
       var ast = (typeof html === 'object') ? html : parse(html);
       var combined = new HTMLProcessor(html, options).acceptNode(ast);
@@ -3050,7 +3052,7 @@ define("htmlbars-syntax/parser",
       this.tokenHandlers = tokenHandlers;
 
       if (typeof source === 'string') {
-        this.source = splitLines(source);
+        this.source = source.split(/(?:\r\n?|\n)/g);
       }
     }
 
@@ -3353,11 +3355,11 @@ define("htmlbars-syntax/tokenizer",
     __exports__.unwrapMustache = unwrapMustache;__exports__.Tokenizer = Tokenizer;
   });
 define("htmlbars-syntax/utils",
-  ["./builders","../htmlbars-util/array-utils","exports"],
-  function(__dependency1__, __dependency2__, __exports__) {
+  ["./builders","exports"],
+  function(__dependency1__, __exports__) {
     "use strict";
     var buildText = __dependency1__.buildText;
-    var indexOfArray = __dependency2__.indexOfArray;
+
     // Regex to validate the identifier for block parameters. 
     // Based on the ID validation regex in Handlebars.
 
@@ -3375,7 +3377,7 @@ define("htmlbars-syntax/utils",
         attrNames.push(element.attributes[i].name);
       }
 
-      var asIndex = indexOfArray(attrNames, 'as');
+      var asIndex = attrNames.indexOf('as');
 
       if (asIndex !== -1 && l > asIndex && attrNames[asIndex + 1].charAt(0) === '|') {
         // Some basic validation, since we're doing the parsing ourselves
@@ -3518,16 +3520,14 @@ define("htmlbars-syntax/walker",
     };
   });
 define("htmlbars-util",
-  ["./htmlbars-util/safe-string","./htmlbars-util/handlebars/utils","./htmlbars-util/namespaces","exports"],
-  function(__dependency1__, __dependency2__, __dependency3__, __exports__) {
+  ["./htmlbars-util/safe-string","./htmlbars-util/handlebars/utils","exports"],
+  function(__dependency1__, __dependency2__, __exports__) {
     "use strict";
     var SafeString = __dependency1__["default"];
     var escapeExpression = __dependency2__.escapeExpression;
-    var getAttrNamespace = __dependency3__.getAttrNamespace;
 
     __exports__.SafeString = SafeString;
     __exports__.escapeExpression = escapeExpression;
-    __exports__.getAttrNamespace = getAttrNamespace;
   });
 define("htmlbars-util/array-utils",
   ["exports"],
@@ -3557,56 +3557,7 @@ define("htmlbars-util/array-utils",
       return output;
     }
 
-    __exports__.map = map;var getIdx;
-    if (Array.prototype.indexOf) {
-      getIdx = function(array, obj, from){
-        return array.indexOf(obj, from);
-      };
-    } else {
-      getIdx = function(array, obj, from) {
-        if (from === undefined || from === null) {
-          from = 0;
-        } else if (from < 0) {
-          from = Math.max(0, array.length + from);
-        }
-        for (var i = from, l= array.length; i < l; i++) {
-          if (array[i] === obj) {
-            return i;
-          }
-        }
-        return -1;
-      };
-    }
-
-    var indexOfArray = getIdx;
-    __exports__.indexOfArray = indexOfArray;
-  });
-define("htmlbars-util/namespaces",
-  ["exports"],
-  function(__exports__) {
-    "use strict";
-    // ref http://dev.w3.org/html5/spec-LC/namespaces.html
-    var defaultNamespaces = {
-      html: 'http://www.w3.org/1999/xhtml',
-      mathml: 'http://www.w3.org/1998/Math/MathML',
-      svg: 'http://www.w3.org/2000/svg',
-      xlink: 'http://www.w3.org/1999/xlink',
-      xml: 'http://www.w3.org/XML/1998/namespace'
-    };
-
-    function getAttrNamespace(attrName) {
-      var namespace;
-
-      var colonIndex = attrName.indexOf(':');
-      if (colonIndex !== -1) {
-        var prefix = attrName.slice(0, colonIndex);
-        namespace = defaultNamespaces[prefix];
-      }
-
-      return namespace || null;
-    }
-
-    __exports__.getAttrNamespace = getAttrNamespace;
+    __exports__.map = map;
   });
 define("htmlbars-util/object-utils",
   ["exports"],
@@ -3706,14 +3657,13 @@ define("morph",
     __exports__.DOMHelper = DOMHelper;
   });
 define("morph/attr-morph",
-  ["./attr-morph/sanitize-attribute-value","./dom-helper/prop","./dom-helper/build-html-dom","../htmlbars-util","exports"],
-  function(__dependency1__, __dependency2__, __dependency3__, __dependency4__, __exports__) {
+  ["./attr-morph/sanitize-attribute-value","./dom-helper/prop","./dom-helper/build-html-dom","exports"],
+  function(__dependency1__, __dependency2__, __dependency3__, __exports__) {
     "use strict";
     var sanitizeAttributeValue = __dependency1__.sanitizeAttributeValue;
     var isAttrRemovalValue = __dependency2__.isAttrRemovalValue;
     var normalizeProperty = __dependency2__.normalizeProperty;
     var svgNamespace = __dependency3__.svgNamespace;
-    var getAttrNamespace = __dependency4__.getAttrNamespace;
 
     function updateProperty(value) {
       this.domHelper.setPropertyStrict(this.element, this.attrName, value);
@@ -3738,7 +3688,7 @@ define("morph/attr-morph",
     function AttrMorph(element, attrName, domHelper, namespace) {
       this.element = element;
       this.domHelper = domHelper;
-      this.namespace = namespace !== undefined ? namespace : getAttrNamespace(attrName);
+      this.namespace = namespace || null;
       this.escaped = true;
 
       var normalizedAttrName = normalizeProperty(this.element, attrName);
@@ -3965,8 +3915,7 @@ define("morph/dom-helper",
     };
 
     prototype.childAtIndex = function(element, index) {
-      // IE8 throws an error if index is out of bounds
-      return element.childNodes.length > index ? element.childNodes.item(index) : null;
+      return element.childNodes.item(index);
     };
 
     prototype.appendText = function(element, text) {
@@ -3975,6 +3924,10 @@ define("morph/dom-helper",
 
     prototype.setAttribute = function(element, name, value) {
       element.setAttribute(name, String(value));
+    };
+
+    prototype.setAttributeNS = function(element, namespace, name, value) {
+      element.setAttributeNS(namespace, name, String(value));
     };
 
     prototype.removeAttribute = function(element, name) {
@@ -4005,7 +3958,7 @@ define("morph/dom-helper",
           if (isAttrRemovalValue(value)) {
             element.removeAttribute(name);
           } else {
-            if (namespace && element.setAttributeNS) {
+            if (namespace) {
               element.setAttributeNS(namespace, name, value);
             } else {
               element.setAttribute(name, value);
@@ -4033,15 +3986,9 @@ define("morph/dom-helper",
           return this.document.createElement(tagName);
         }
       };
-      prototype.setAttributeNS = function(element, namespace, name, value) {
-        element.setAttributeNS(namespace, name, String(value));
-      };
     } else {
       prototype.createElement = function(tagName) {
         return this.document.createElement(tagName);
-      };
-      prototype.setAttributeNS = function(element, namespace, name, value) {
-        element.setAttribute(name, String(value));
       };
     }
 
@@ -4356,17 +4303,15 @@ define("morph/dom-helper/build-html-dom",
         // script tags without any whitespace for easier processing later.
         var spacesBefore = [];
         var spacesAfter = [];
-        if (typeof html === 'string') {
-          html = html.replace(/(\s*)(<script)/g, function(match, spaces, tag) {
-            spacesBefore.push(spaces);
-            return tag;
-          });
+        html = html.replace(/(\s*)(<script)/g, function(match, spaces, tag) {
+          spacesBefore.push(spaces);
+          return tag;
+        });
 
-          html = html.replace(/(<\/script>)(\s*)/g, function(match, tag, spaces) {
-            spacesAfter.push(spaces);
-            return tag;
-          });
-        }
+        html = html.replace(/(<\/script>)(\s*)/g, function(match, tag, spaces) {
+          spacesAfter.push(spaces);
+          return tag;
+        });
 
         // Fetch nodes
         var nodes;

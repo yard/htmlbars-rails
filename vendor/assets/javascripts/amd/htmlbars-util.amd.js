@@ -1,14 +1,12 @@
 define("htmlbars-util",
-  ["./htmlbars-util/safe-string","./htmlbars-util/handlebars/utils","./htmlbars-util/namespaces","exports"],
-  function(__dependency1__, __dependency2__, __dependency3__, __exports__) {
+  ["./htmlbars-util/safe-string","./htmlbars-util/handlebars/utils","exports"],
+  function(__dependency1__, __dependency2__, __exports__) {
     "use strict";
     var SafeString = __dependency1__["default"];
     var escapeExpression = __dependency2__.escapeExpression;
-    var getAttrNamespace = __dependency3__.getAttrNamespace;
 
     __exports__.SafeString = SafeString;
     __exports__.escapeExpression = escapeExpression;
-    __exports__.getAttrNamespace = getAttrNamespace;
   });
 define("htmlbars-util/array-utils",
   ["exports"],
@@ -38,29 +36,7 @@ define("htmlbars-util/array-utils",
       return output;
     }
 
-    __exports__.map = map;var getIdx;
-    if (Array.prototype.indexOf) {
-      getIdx = function(array, obj, from){
-        return array.indexOf(obj, from);
-      };
-    } else {
-      getIdx = function(array, obj, from) {
-        if (from === undefined || from === null) {
-          from = 0;
-        } else if (from < 0) {
-          from = Math.max(0, array.length + from);
-        }
-        for (var i = from, l= array.length; i < l; i++) {
-          if (array[i] === obj) {
-            return i;
-          }
-        }
-        return -1;
-      };
-    }
-
-    var indexOfArray = getIdx;
-    __exports__.indexOfArray = indexOfArray;
+    __exports__.map = map;
   });
 define("htmlbars-util/handlebars/safe-string",
   ["exports"],
@@ -168,33 +144,6 @@ define("htmlbars-util/handlebars/utils",
     }
 
     __exports__.appendContextPath = appendContextPath;
-  });
-define("htmlbars-util/namespaces",
-  ["exports"],
-  function(__exports__) {
-    "use strict";
-    // ref http://dev.w3.org/html5/spec-LC/namespaces.html
-    var defaultNamespaces = {
-      html: 'http://www.w3.org/1999/xhtml',
-      mathml: 'http://www.w3.org/1998/Math/MathML',
-      svg: 'http://www.w3.org/2000/svg',
-      xlink: 'http://www.w3.org/1999/xlink',
-      xml: 'http://www.w3.org/XML/1998/namespace'
-    };
-
-    function getAttrNamespace(attrName) {
-      var namespace;
-
-      var colonIndex = attrName.indexOf(':');
-      if (colonIndex !== -1) {
-        var prefix = attrName.slice(0, colonIndex);
-        namespace = defaultNamespaces[prefix];
-      }
-
-      return namespace || null;
-    }
-
-    __exports__.getAttrNamespace = getAttrNamespace;
   });
 define("htmlbars-util/object-utils",
   ["exports"],

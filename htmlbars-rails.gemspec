@@ -8,8 +8,8 @@ Gem::Specification.new do |spec|
   spec.version       = Htmlbars::Rails::VERSION
   spec.authors       = ["Anton Zhuravsky"]
   spec.email         = ["mail2lf@gmail.com"]
-  spec.summary       = %q{TODO: Write a short summary. Required.}
-  spec.description   = %q{TODO: Write a longer description. Optional.}
+  spec.summary       = %q{Htmlbars asset gem for Rails 4+}
+  spec.description   = %q{Htmlbars asset gem for Rails 4+}
   spec.homepage      = ""
   spec.license       = "MIT"
 
@@ -21,5 +21,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "bundler", "~> 1.6"
   spec.add_development_dependency "rake"
 
-  spec.add_dependency "railties", "~> 3.1"  
+  spec.add_dependency "railties", ">= 3.1"
 end
